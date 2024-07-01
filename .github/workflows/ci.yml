@@ -49,11 +49,19 @@ jobs:
 
     - name: Install influx CLI
       run: |
-        curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
-        source /etc/os-release
-        test $ID = "debian" && echo "deb https://repos.influxdata.com/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
-        test $ID = "ubuntu" && echo "deb https://repos.influxdata.com/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
-        sudo apt-get update && sudo apt-get install influxdb2-cli
+       - name: Install influx CLI
+  run: |
+    # Add InfluxDB GPG key
+    curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+
+    # Add InfluxDB repository to sources list
+    source /etc/os-release
+    echo "deb https://repos.influxdata.com/${ID,,} $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+
+    # Update package lists and install InfluxDB CLI
+    sudo apt-get update
+    sudo apt-get install influxdb2-cli
+
 
     - name: Configure InfluxDB
       run: |
