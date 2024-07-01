@@ -1,16 +1,15 @@
-
+---
 name: CI Pipeline
-
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
-    branches: [master]
-
+    branches:
+      - master
 jobs:
   build:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:13
@@ -20,59 +19,45 @@ jobs:
           POSTGRES_DB: testdb
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s
           --health-retries 5
       influxdb:
         image: influxdb:2.0
         ports:
           - 8086:8086
-        options: >-
-          --health-cmd "curl -f http://localhost:8086/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+        options: --health-cmd "curl -f http://localhost:8086/health || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+      - name: Wait for services to be ready
+        run: sleep 30
+      - name: Install influx CLI
+        run: |
+          - name: Install influx CLI
+    run: >
+      
+      curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
 
-    - name: Set up Docker
-      run: |
-        sudo apt-get update
-        sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+      source /etc/os-release
 
-    - name: Wait for services to be ready
-      run: sleep 30
+      echo "deb https://repos.influxdata.com/${ID,,} $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
 
-    - name: Install influx CLI
-      run: |
-       - name: Install influx CLI
-    run: |
-    # Add InfluxDB GPG key
-     curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+      sudo apt-get update
 
-    # Add InfluxDB repository to sources list
-    source /etc/os-release
-    echo "deb https://repos.influxdata.com/${ID,,} $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+      sudo apt-get install influxdb2-cli
 
-    # Update package lists and install InfluxDB CLI
-    sudo apt-get update
-    sudo apt-get install influxdb2-cli
-
-
-    - name: Configure InfluxDB
-      run: |
-        influx setup --username user --password password --org myorg --bucket mybucket --retention 1d --force
-
-    - name: Run migration script
-      run: |
-        influx write --bucket mybucket --org myorg --file migration.csv
-
-    - name: Run tests
-      run: |
-        # Add your test commands here
-        echo "Running tests..."
-
+      - name: Configure InfluxDB
+       run: |
+         influx setup --username user --password password --org myorg --bucket mybucket --retention 1d --force
+      - name: Run migration script
+       run: |
+         influx write --bucket mybucket --org myorg --file migration.csv
+      - name: Run tests
+       run: |
+         # Add your test commands here
+         echo "Running tests..."
