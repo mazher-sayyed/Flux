@@ -1,0 +1,70 @@
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      influxdb:
+        image: influxdb:2.0
+        ports:
+          - 8086:8086
+        options: >-
+          --health-cmd "curl -f http://localhost:8086/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Docker
+      run: |
+        sudo apt-get update
+        sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+
+    - name: Wait for services to be ready
+      run: sleep 30
+
+    - name: Install influx CLI
+      run: |
+        curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+        source /etc/os-release
+        test $ID = "debian" && echo "deb https://repos.influxdata.com/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+        test $ID = "ubuntu" && echo "deb https://repos.influxdata.com/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+        sudo apt-get update && sudo apt-get install influxdb2-cli
+
+    - name: Configure InfluxDB
+      run: |
+        influx setup --username user --password password --org myorg --bucket mybucket --retention 1d --force
+
+    - name: Run migration script
+      run: |
+        influx write --bucket mybucket --org myorg --file migration.csv
+
+    - name: Run tests
+      run: |
+        # Add your test commands here
+        echo "Running tests..."
+
