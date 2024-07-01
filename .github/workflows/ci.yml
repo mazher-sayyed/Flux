@@ -50,7 +50,7 @@ jobs:
     - name: Install influx CLI
       run: |
        - name: Install influx CLI
-  run: |
+  runs-on: |
     # Add InfluxDB GPG key
     curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
 
