@@ -41,9 +41,13 @@ jobs:
 
       - name: Install influx CLI
         run: |
+          # Download the key and save it as a file
           curl -sL https://repos.influxdata.com/influxdb.key -o /tmp/influxdb.key
+          # Add the key to the trusted keyring
           sudo gpg --dearmor -o /usr/share/keyrings/influxdb-archive-keyring.gpg /tmp/influxdb.key
+          # Use the trusted keyring to add the repository
           echo "deb [signed-by=/usr/share/keyrings/influxdb-archive-keyring.gpg] https://repos.influxdata.com/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+          # Update package lists and install the CLI
           sudo apt-get update
           sudo apt-get install influxdb2-cli -y
 
